@@ -4,5 +4,4 @@ __pycache__/
 archive.zip
 archive.zip:Zone.Identifier
 data/
-output/
 .DS_Store
