@@ -291,7 +291,59 @@ buna ca modelul a prins semantica reala, nu zgomot.
 
 ### Task 2 - Time Series Forecasting (TBD)
 
-### Task 3 - Clustering (TBD)
+### Task 3 - Clustering: Descoperirea arhetipurilor de raportări
+
+Ideea acestui task a fost să aplicăm învățare nesupervizată pentru a descoperi "grupuri naturale" sau arhetipuri în raportările Bigfoot. Am vrut să vedem dacă algoritmul poate grupa singur incidentele (de ex: "întâlniri vizuale de vară în Washington" vs. "sunete auzite toamna de vânători în Ohio"), folosind atât date tabelare, cât și vocabularul din text.
+
+#### Cum am făcut preprocesarea și feature engineering-ul
+
+Pentru a putea combina textul cu datele categoriale și geografice, am construit un spațiu de trăsături (features) hibrid:
+- **State**: transformat prin *Frequency Encoding* (deoarece un stat ca Washington are mult mai multe raportări și contează frecvența lui relativă).
+- **Season & Class**: transformate prin *One-Hot Encoding*.
+- **Month**: transformat în valori numerice (1-12).
+- **Text (Headline + Observed)**: extras prin *TF-IDF* (am păstrat doar top 50 de cuvinte cheie pentru a nu domina spațiul multidimensional).
+- Datele au fost standardizate obligatoriu folosind `StandardScaler`.
+- Am aplicat **PCA (Principal Component Analysis)** pentru a reduce spațiul la 2 componente principale, exclusiv pentru vizualizarea 2D a clusterelor.
+
+#### Modele antrenate și Metrici
+
+Am folosit metodele **Elbow** și **Silhouette Score** pentru a determina numărul optim de clustere, alegând **K=4** ca fiind un compromis bun între partiționarea clară și interpretabilitate. Am testat 3 algoritmi:
+
+| Model | Caracteristici | Metrici urmărite |
+| --- | --- | --- |
+| **KMeans** | Iterativ, împarte datele în clustere sferice pe baza centroizilor. | Silhouette Score, Davies-Bouldin |
+| **Agglomerative Clustering** | Ierarhic (folosind distanța Euclidiană și linkage Ward). | Silhouette Score, Davies-Bouldin |
+| **DBSCAN** | Bazat pe densitate, util pentru a detecta outlierii (noise). | Silhouette Score pe punctele de bază |
+
+*Notă: Deoarece spațiul de trăsături are peste 50 de dimensiuni (chiar și standardizat), KMeans și Agglomerative Clustering oferă o partiționare mai logică pentru extragerea de arhetipuri. DBSCAN a grupat majoritatea punctelor într-un cluster masiv și a marcat restul ca zgomot, datele nefiind suficient de dense/grupate izolat.*
+
+#### Profilarea Clusterelor (Arhetipurile extrase de KMeans)
+
+Analizând conținutul fiecărui cluster format de KMeans, am descoperit următoarele profiluri (arhetipuri) de raportări:
+
+- **Cluster 0 (Grupul "Camping de Vară")**: Dominat puternic de sezonul **Summer** și **Class B**. Apare frecvent în state cu păduri dense. Cuvinte cheie extrase: *heard, night, tent, sound, woods*. Sunt incidentele clasice de camping unde oamenii aud zgomote neobișnuite noaptea.
+- **Cluster 1 (Grupul "Întâlniri Vizuale - Class A")**: Dominat de **Class A**. Frecvent în **Washington** și **California**. Cuvinte cheie: *saw, road, crossed, creature, tall*. Reprezintă observațiile directe, adesea din mașină, unde martorii descriu fizic o creatură trecând drumul.
+- **Cluster 2 (Grupul "Vânătorii de Toamnă")**: Dominat de **Fall** și luni ca Octombrie/Noiembrie. State precum **Ohio** sau **Illinois**. Cuvinte cheie: *hunting, deer, stand, heard, woods*. Acestea sunt raportările vânătorilor aflați în standuri, care aud pași grei sau vocalizări (Class B).
+- **Cluster 3 (Grupul de Iarnă/Primăvară)**: O categorie mai restrânsă, dominată de **Winter** și **Spring**. Frecvent observat în state mai calde sau raportări de urme lăsate în zăpadă/noroi. Cuvinte cheie: *tracks, snow, footprints, found*.
+
+#### Grafice
+
+*(Fișiere generate automat în folderul `output/clustering/`)*
+
+**1. Identificarea K-ului optim (Elbow Method & Silhouette)** Graficul ne arată unde scade inerția și unde avem un maxim local de coeziune pentru `K=4`.  
+![Elbow and Silhouette](output/clustering/01_elbow_silhouette.png)
+
+**2. Comparația algoritmilor de clustering în proiecție PCA 2D** Observăm cum KMeans și Agglomerative taie spațiul similar, în timp ce DBSCAN identifică un "core" mare și mulți outlieri.  
+![PCA Clusters](output/clustering/02_pca_clusters.png)
+
+**3. Dendrograma (Agglomerative Clustering)** Arată modul ierarhic în care raportările se asamblează treptat pe baza distanței euclidiene.  
+![Dendrograma](output/clustering/03_dendrograma.png)
+
+**4. Distribuția Sezoanelor și Claselor per Cluster** Validarea vizuală a profilelor: se observă cum anumite sezoane sau clase domină vizibil anumite clustere.  
+![Cluster Profiles](output/clustering/04_cluster_profiles.png)
+
+#### Concluzii
+Analiza nesupervizată a confirmat descoperirile din faza de explorare (Checkpoint 1). Modelul a reușit să identifice automat, fără să fie instruit în prealabil, corelația puternică dintre "Vara/Toamna" + "Sunete (Class B)" + "Camping/Vânătoare" vs. "Creaturi văzute pe drum (Class A)". Aceasta ne întărește ipoteza conform căreia activitatea umană sezonieră dictează tiparul raportărilor.
 
 ---
 
