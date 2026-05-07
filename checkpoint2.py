@@ -19,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 TASKS = [
     ('Task 1: Classification', 'tasks/task1_classification.py'),
-    # ('Task 2: ', 'tasks/.py'),
+    ('Task 2: Forecasting', 'tasks/task2_forecasting.py'),
     ('Task 3: Clustering',  'tasks/task3_clustering.py'),
 ]
 

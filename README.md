@@ -289,7 +289,57 @@ putin ca un model de text sa invete pattern-ul.
 Faptul ca top words pe care le-a invatat LogReg corespund cu definitiile fiecarei clase e o validare
 buna ca modelul a prins semantica reala, nu zgomot.
 
-### Task 2 - Time Series Forecasting (TBD)
+### Task 2 - Time Series Forecasting: Predicția raportărilor lunare
+
+Ideea acestui task a fost să analizăm evoluția în timp a fenomenului Bigfoot și să verificăm dacă frecvența raportărilor poate fi modelată matematic. Scopul final a fost predicția numărului de raportări pentru următoarele 12 luni.
+
+#### Cum am făcut preprocesarea datelor
+
+Pentru a transforma setul de date într-o serie temporală (Time Series) coerentă:
+- **Filtrare**: Am izolat datele între anii **1990 și 2019** pentru a avea un set consistent (eliminând anii prea vechi cu date rare și anul 2020 care era incomplet).
+- **Agregare temporală**: Am grupat toate raportările la nivel lunar (folosind `resample('ME')`), obținând o serie continuă de 360 de luni.
+- **Descompunere**: Am analizat separat Trendul, Sezonalitatea (care a confirmat din nou pattern-ul de vară/toamnă) și Reziduul (zgomotul).
+- **Train/Test Split**: Am folosit primele 336 luni (1990-2017) pentru antrenare și **ultimele 24 de luni (2018-2019)** pentru testare și validarea modelelor.
+
+#### Cele 3 modele comparate
+
+Am folosit 3 abordări diferite pentru a modela această serie temporală:
+
+1. **ARIMA (SARIMAX)**: Un model statistic clasic și puternic. Pe baza analizei graficelor ACF (Autocorrelation) și PACF (Partial Autocorrelation), am configurat un model care ține cont atât de autoregresie, cât și de sezonalitatea la 12 luni.
+2. **Prophet**: Algoritmul dezvoltat de Meta, excelent pentru serii temporale cu sezonalitate puternică anuală și schimbări de trend.
+3. **Linear Regression**: Un model de baseline simplu. Pentru a-l forța să înțeleagă "timpul", i-am extras manual caracteristici temporale (indexul lunii) și elemente ciclice (sinus/cosinus pe lună) ca variabile independente.
+
+#### Rezultate și Evaluare
+
+Am comparat performanța pe cele 24 de luni de test folosind **RMSE** (Root Mean Squared Error) și **MAE** (Mean Absolute Error).
+
+| Model | Descriere scurtă | RMSE | MAE |
+| --- | --- | --- | --- |
+| **ARIMA (SARIMAX)** | Model statistic autoregresiv sezonier | **3.18** | **2.61** |
+| **Prophet** | Model aditiv (Trend + Sezonalitate anuală) | 4.35 | 3.60 |
+| **Linear Regression** | Regresie clasică cu funcții trigonometrice | 16.59 | 16.40 |
+
+#### Concluzii
+
+- **ARIMA a câștigat clar competiția**. Cu un RMSE de ~3.18, înseamnă că predicțiile modelului se abat în medie cu doar aproximativ 3 raportări față de numărul real de raportări pe lună din perioada de test. S-a mulat excelent pe istoricul recent al datelor.
+- **Prophet** s-a descurcat foarte bine (RMSE 4.35), captând corect vârfurile de vară, deși a fost puțin mai conservator decât ARIMA pe setul specific de test. L-am ales însă pentru extrapolarea finală (forecast-ul viitor) datorită robusteții sale pe termen lung.
+- **Linear Regression** a eșuat în a modela complexitatea seriei (RMSE 16.59). Funcțiile sinus/cosinus sunt prea rigide pentru a explica fluctuațiile reale.
+
+#### Grafice
+
+*(Fișiere generate automat în folderul `output/forecasting/`)*
+
+**1. Descompunerea Seriei Temporale** Graficul arată clar sezonalitatea perfectă (vârfuri repetate anual) și trendul general (creșterea maximă în jurul anilor 2000-2010, urmată de o ușoară scădere).  
+![Decomposition](output/forecasting/01_decomposition.png)
+
+**2. Autocorelația (ACF și PACF)** Graficele folosite pentru determinarea ordinilor parametrilor (p, d, q) pentru modelul ARIMA. Spike-urile la intervale de 12 lag-uri confirmă sezonalitatea anuală puternică.  
+![ACF PACF](output/forecasting/02_acf_pacf.png)
+
+**3. Compararea Modelelor pe setul de Test** Se observă cum ARIMA (și Prophet parțial) reușesc să urmărească fidel linia neagră (datele reale) în ultimii 2 ani de testare, în timp ce Linear Regression subestimează fluctuațiile de vară.  
+![Forecast Compare](output/forecasting/03_forecast_compare.png)
+
+**4. Forecast pe următoarele 12 luni** Predicția finală generată cu Prophet pentru anul 2020. Modelul prezice menținerea aceluiași pattern ciclic, cu un vârf preconizat în lunile iulie-octombrie și un minim în lunile de iarnă, însoțit de banda de încredere (confidence interval).  
+![Final Forecast](output/forecasting/04_final_forecast_12m.png)
 
 ### Task 3 - Clustering: Descoperirea arhetipurilor de raportări
 
